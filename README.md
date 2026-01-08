@@ -2,7 +2,9 @@
 My classmates and I developed an SNS-based restaurant discovery web application as part of an AWS assignment.
 This application displays restaurants that are both located near the user’s current location and trending (“buzzing”) on social networking services (SNS).  
 The overall system architecture is illustrated in the AWS architecture diagram.
-![icon](icons.png)
+<p align="center">
+  <img src="icons.png" width="400">
+</p>
 
 
 ## System Overview
@@ -24,6 +26,9 @@ The system supports features such as restaurant search, visit history tracking, 
 
 
 ##Example UI
-![map_image](map_sample1.jpg)
-![whole_map_image](whole_map.jpg)
-
+<p align="center">
+  <img src="map_sample1.jpg" width="400">
+</p>
+<p align="center">
+  <img src="whole_map.jpg" width="400">
+</p>
