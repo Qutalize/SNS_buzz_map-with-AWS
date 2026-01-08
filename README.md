@@ -7,6 +7,7 @@ The overall system architecture is illustrated in the AWS architecture diagram.
 </p>
 
 
+
 ## System Overview
 The system consists of the following four main components:
 ### 1. Collecting trending SNS posts and calculating a buzz score  
@@ -23,6 +24,7 @@ The converted data is saved as the finalized dataset in the database.
 Restaurant data is retrieved from DynamoDB via API Gateway and Lambda.  
 The user’s current location is obtained using browser-provided APIs, and the web application is hosted on Amazon S3.  
 The system supports features such as restaurant search, visit history tracking, and a user-friendly interface for better usability.
+
 
 
 ## Example UI
