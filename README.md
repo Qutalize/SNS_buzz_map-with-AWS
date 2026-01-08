@@ -25,7 +25,7 @@ The user’s current location is obtained using browser-provided APIs, and the w
 The system supports features such as restaurant search, visit history tracking, and a user-friendly interface for better usability.
 
 
-##Example UI
+## Example UI
 <p align="center">
   <img src="map_sample1.jpg" width="400">
 </p>
