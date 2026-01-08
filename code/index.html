@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>バズグルメファインダー</title>
+    <link
+      href="https://cdn.amplify.aws/packages/maplibre-gl/1.15.2/maplibre-gl.css"
+      rel="stylesheet"
+    />
+    <link href="https://fonts.googleapis.com/earlyaccess/nicomoji.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/earlyaccess/nikukyu.css" rel="stylesheet">
+
+    <script src="https://cdn.amplify.aws/packages/maplibre-gl/1.15.2/maplibre-gl.js"></script>
+    <script src="https://cdn.amplify.aws/packages/core/4.3.0/aws-amplify-core.min.js"></script>
+    <script src="https://cdn.amplify.aws/packages/auth/4.3.8/aws-amplify-auth.min.js"></script>
+    <script src="https://cdn.amplify.aws/packages/geo/1.1.0/aws-amplify-geo.min.js"></script>
+    <script src="https://cdn.amplify.aws/packages/maplibre-gl-js-amplify/1.1.0/maplibre-gl-js-amplify.umd.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Poppins:wght@600&display=swap');
+        
+        body { margin: 0; font-family: sans-serif; }
+    
+        /* --- ヘッダー --- */
+        #app-header {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 70px;
+          background: linear-gradient(90deg, #FF6B6B, #FFD93D);
+          color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 16px;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+          z-index: 100;
+          overflow: visible;
+        }
+
+        .logo {
+            font-family: 'Nico Moji', sans-serif;
+            font-size: 5.4rem;
+            color: white;
+            letter-spacing: 0.03em;
+            display: flex;
+            align-items: flex-end; /* デフォルトで文字を下寄せ */
+            gap: 1px; 
+        }
+
+        .logo .buzz {
+          font-family: 'Nikukyu', sans-serif;  /* アクセント部分用 */
+          font-size: 2.4rem;
+          display: inline-block;
+          vertical-align: middle;
+          margin-top: -18px;    /* 微調整でさらに上に */
+        }  
+
+
+        #app-header h1 {
+          margin: 0;
+          font-size: 22px;
+          font-weight: bold;
+        }
+        #open-drawer {
+            background-color: white;
+            color: #ff6b6b;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 14px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            margin-right: 30px; /* ← 右寄りすぎを修正 */
+        }
+
+        #open-drawer:hover { background-color: rgba(255,255,255,0.4); }
+    
+        /* --- マップ --- */
+        #map {
+            position: absolute;
+            top: 70px;    /* ヘッダーの高さ */
+            bottom: 0;    /* 下までぴったり */
+            left: 0;
+            right: 0;
+        }
+    
+        /* --- 検索バー --- */
+        #search-container {
+          position: fixed;
+          top: 80px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 25;
+          background: rgba(255, 255, 255, 0.95);
+          border-radius: 8px;
+          padding: 6px 12px;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+          display: flex;
+          gap: 6px;
+          align-items: center;
+        }
+        #search-box { border: none; outline: none; font-size: 14px; width: 250px; }
+        #search-button, #reset-button {
+          background-color: #007aff;
+          border: none;
+          color: white;
+          border-radius: 4px;
+          padding: 5px 10px;
+          font-size: 13px;
+          cursor: pointer;
+        }
+        #reset-button { background-color: #888; }
+        #search-button:hover { background-color: #005ecb; }
+        #reset-button:hover { background-color: #666; }
+    
+        /* --- ポップアップ --- */
+        .popup-content h3 { margin: 0 0 5px 0; color: #ff6b6b; font-size: 16px; font-weight: bold;}
+        .popup-content p { margin: 4px 0; font-size: 14px; }
+        .popup-content img { border-radius: 6px; margin-top: 5px; width: 100%; }
+        .popup-content a { text-decoration: none; color: #007aff; font-weight: bold; }
+        .insta-link { display:block; text-align:right; font-size:12px; margin-top:3px; }
+    
+        /* --- 訪問ボタン --- */
+        .visit-btn {
+          margin-top: 8px;
+          padding: 5px 10px;
+          border: none;
+          border-radius: 6px;
+          background-color: #007aff;
+          color: #fff;
+          cursor: pointer;
+          font-weight: bold;
+          transition: background-color 0.2s;
+          float: right;  
+        }
+        .visit-btn:hover { background-color: #005ecb; }
+        .visit-btn.visited { background-color: #28a745; cursor: default; }
+    
+        /* --- サイドドロワー --- */
+        #visited-drawer {
+          position: fixed;
+          top: 70px;
+          right: -350px;
+          width: 300px;
+          bottom: 0;
+          background: #fff;
+          box-shadow: -2px 0 8px rgba(0,0,0,0.2);
+          transition: right 0.3s ease;
+          z-index: 50;
+          display: flex;
+          flex-direction: column;
+          padding: 16px;
+        }
+
+        #visited-list {
+          flex: 1;              /* 残りの高さをリストに割り当て */
+          overflow-y: auto;     /* スクロール可能にする */
+        }
+
+        #visited-drawer.open {
+           right: 0; /* ← 表示状態 */
+        }
+        #visited-drawer h3 { margin-top: 0; font-size: 18px; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
+        #visited-list p { margin: 6px 0; font-size: 14px; }
+
+        #reset-visited-drawer, #close-drawer {
+          margin-top: 10px;
+          padding: 8px;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+         font-weight: bold;
+        }
+
+        #reset-visited-drawer {
+          background-color: #ff0606;
+          color: white;
+        }
+
+        #close-drawer {
+          background-color: #ddd;
+        }
+
+        /* --- 訪問リストアイテム --- */
+        .visited-item {
+          padding: 10px 12px;
+          margin-bottom: 10px;
+          border-radius: 10px;
+          background: #f9f9f9;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          transition: all 0.2s ease;
+          cursor: pointer;
+}
+
+        .visited-item:hover {
+          background: #fff8f8;
+          transform: translateY(-2px);
+        }
+
+        .visited-item h4 {
+          margin: 0;
+          font-size: 15px;
+          color: #ff6b6b;
+          font-weight: bold;
+        }
+
+        .visited-item p {
+          margin: 3px 0;
+          font-size: 12px;
+          color: #555;
+        }
+
+        .platform-icon {
+          font-size: 13px;
+          margin-right: 4px;
+        }
+
+        /* --- レスポンシブ（スマホ対応） --- */
+@media (max-width: 600px) {
+
+/* ヘッダー */
+#app-header {
+  height: 60px;
+  padding: 0 12px;
+}
+.logo { font-size: 3rem; gap: 4px; }
+.logo .buzz { font-size: 1.6rem; margin-top: -4px; }
+.logo span.rest { margin-top: 4px; }
+#open-drawer { padding: 6px 10px; font-size: 12px; }
+
+/* 検索バー */
+#search-container {
+  width: 90%;
+  top: 70px;
+  flex-direction: row;
+  gap: 4px;
+  padding: 4px 8px;
+}
+#search-box { flex: 1; min-width: 0; font-size: 14px;}
+#search-button, #reset-button { flex: 0 0 auto; width: 60px; font-size: 14px; padding: 6px 0; }
+
+/* ドロワー */
+#visited-drawer {
+  width: 80%;
+  top: 60px;
+  padding: 12px;
+}
+#visited-drawer h3 { font-size: 16px; }
+.visited-item { padding: 8px 10px; font-size: 13px; }
+#reset-visited-drawer, #close-drawer { padding: 6px; font-size: 12px; }
+
+/* マップ */
+#map { 
+    position: absolute;
+    top: 60px;    /* ヘッダーの高さ */
+    bottom: 0;    /* 下までぴったり */
+    left: 0;
+    right: 0;
+}
+}
+
+      </style>
+    </head>
+    
+    <body>
+      <header id="app-header">
+        <h1 class="logo" id="logo"><span class="buzz">バズ</span>グルメファインダー</h1>
+        <button id="open-drawer">訪問済みリスト</button>
+      </header>
+    
+      <div id="search-container">
+        <input type="text" id="search-box" placeholder="場所・店名・投稿で検索" />
+        <button id="reset-button">×</button>
+        <button id="search-button">検索</button>
+      </div>
+    
+      <div id="map"></div>
+    
+      <div id="visited-drawer">
+        <h3>訪問済みのお店</h3>
+        <div id="visited-list"></div>
+        <button id="close-drawer">閉じる</button>
+        <button id="reset-visited-drawer">履歴を全て削除</button>
+      </div>
+ 
+
+    <script type="module">
+      const { Amplify, Geo } = aws_amplify_core;
+      const { createMap } = AmplifyMapLibre;
+
+      Amplify.configure({
+        Auth: {
+          identityPoolId: "us-east-1:5ac3bee1-cb53-4270-89f9-72febd570cf4",
+          region: "us-east-1",
+        },
+        geo: {
+          AmazonLocationService: {
+            maps: {
+              items: { GourmetFinderMap: { style: "Default style" } },
+              default: "GourmetFinderMap",
+            },
+            region: "us-east-1",
+          },
+        },
+      });
+
+      let map;
+      let markers = [];
+      let userLocation = null;
+
+      function getVisited(){ return JSON.parse(localStorage.getItem("visitedPosts")||"[]"); }
+      function addVisited(id){ const v=getVisited(); if(!v.includes(id)){v.push(id); localStorage.setItem("visitedPosts",JSON.stringify(v));} }
+      function resetVisited() { localStorage.removeItem("visitedPosts"); }
+
+      function getBuzzIcon(buzz) {
+        const num = Number(buzz);
+        if (isNaN(num) || num <= 0) return "なし";
+        const level = Math.min(Math.ceil(num), 5);
+
+        return "🔥".repeat(level);
+      }  
+
+      function extractYouTubeId(url) {
+        if (!url) return null;
+        const regexList = [
+          /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+          /youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
+          /youtube\.com\/.*[?&]v=([a-zA-Z0-9_-]{11})/,
+          /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+          /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+        ];
+        for (const re of regexList) {
+          const match = url.match(re);
+          if (match) return match[1];
+        }
+        return null;
+      }
+
+
+      function createPopup(post) {
+        const popupContent = document.createElement("div");
+        popupContent.className = "popup-content";
+
+        let description = post.title;
+        if (description.length > 100) {
+          description = description.slice(0, 100) + "…";
+        }
+        const platformIcon = post.platform === "Youtube" 
+            ? "🎬" 
+            : post.platform === "Instagram"
+            ? "📸"
+            : "🍴";
+
+        popupContent.innerHTML = `
+          <h3>${platformIcon} ${post.placeName}</h3>
+          <p style="font-size:12px;color:#555;">${post.address}</p>
+          <p>バズ度: ${getBuzzIcon(post.buzz)}</p>
+          <p style="font-size:13px; color:#333; margin:9px 0 0 0;">${description}</p>
+        `;
+
+        if (post.platform === "Youtube") {
+          const id = extractYouTubeId(post.postUrl);
+          if (id) {
+            popupContent.innerHTML += `
+              <a href="${post.postUrl}" target="_blank">
+                <img src="https://img.youtube.com/vi/${id}/hqdefault.jpg" alt="YouTube thumbnail">
+              </a>`;
+          }
+        } else if (post.platform === "Instagram") {
+          popupContent.innerHTML += `
+            <a href="${post.postUrl}" target="_blank" class="insta-link">Instagramで見る</a>`;
+        }
+
+        const visitBtn = document.createElement("button");
+        visitBtn.className = "visit-btn";
+        visitBtn.dataset.postId = post.postId;
+
+        let distanceOk = true;
+        if (userLocation) {
+          const dx = userLocation.longitude - post.lng;
+          const dy = userLocation.latitude - post.lat;
+          const distance = Math.sqrt(dx*dx + dy*dy); 
+          distanceOk = distance < 0.027; 
+        }
+        if (getVisited().includes(post.postId)) {
+          visitBtn.classList.add("visited");
+          visitBtn.textContent = "訪問済み✔️";
+          visitBtn.disabled = true;
+        } else {
+          visitBtn.textContent = "訪問した！";
+          visitBtn.disabled = false; 
+        }
+        visitBtn.onclick = () => {
+          if (!distanceOk) {
+            alert("店から半径約3km以内に近づいてください。");
+            return;
+          }
+
+          addVisited(post.postId);
+          visitBtn.classList.add("visited");
+          visitBtn.textContent = "訪問済み✔️";
+          visitBtn.disabled = true;
+        };
+
+        popupContent.appendChild(visitBtn);
+
+        return new maplibregl.Popup({ offset: 25 }).setDOMContent(popupContent);
+      }
+      
+      const logo = document.getElementById('logo');
+      logo.addEventListener('click', () => {
+        location.reload(); // ページをリロード
+      });
+
+      const drawer = document.getElementById("visited-drawer");
+      const openBtn = document.getElementById("open-drawer");
+      const closeBtn = document.getElementById("close-drawer");
+      const resetDrawerBtn = document.getElementById("reset-visited-drawer");
+
+      openBtn.onclick = () => {
+        drawer.classList.toggle("open");
+      };
+
+      closeBtn.onclick = () => {
+        drawer.classList.remove("open");
+      };
+
+      function updateVisitedList(posts) {
+        const container = document.getElementById("visited-list");
+        const visitedIds = getVisited();
+        const visitedPosts = posts.filter(p => visitedIds.includes(p.postId));
+ 
+        if (visitedPosts.length === 0) {
+          container.innerHTML = "<p>訪問済みのお店はまだありません</p>";
+          return;
+        }
+        container.innerHTML = visitedPosts.map(p => {
+          const platformIcon = p.platform === "Youtube" 
+            ? "🎬" 
+            : p.platform === "Instagram"
+            ? "📸"
+            : "🍴";
+          return `
+            <div class="visited-item" data-id="${p.postId}">
+              <h4>${platformIcon} ${p.placeName}</h4>
+              <p>${p.address || "住所情報なし"}</p>
+              <p>バズ度: ${getBuzzIcon(p.buzz)}</p>
+            </div>
+           `;
+        }).join("");
+
+        container.querySelectorAll(".visited-item").forEach(item => {
+          item.onclick = () => {
+            const post = posts.find(p => p.postId === item.dataset.id);
+            if (post) {
+              map.flyTo({ center: [post.lng, post.lat], zoom: 15 });
+              const marker = markers.find(m => {
+                const popup = m.getPopup();
+                const btn = popup?._content?.querySelector(".visit-btn");
+                return btn && btn.dataset.postId === post.postId;
+              });
+              if (marker) marker.togglePopup();
+            }
+          };
+        });
+      }
+
+      resetDrawerBtn.addEventListener('click', () => {
+        const confirmDelete = confirm('訪問履歴を全て削除しますか？');
+        if (confirmDelete) {
+          resetVisited();       // localStorageをクリア
+          const container = document.getElementById("visited-list");
+          container.innerHTML = "<p>訪問済みのお店はまだありません</p>"; 
+          updateVisitedList(posts); // リストを更新
+          updateMapMarkers(posts);  // マップの訪問ボタンもリセット
+        }
+      });
+
+      function updateMapMarkers(posts) {
+        markers.forEach(marker => {
+          const popup = marker.getPopup();
+          if (!popup) return;
+          const visitBtn = popup._content.querySelector(".visit-btn");
+          if (!visitBtn) return;
+          const postId = visitBtn.dataset.postId;
+          if (getVisited().includes(postId)) {
+            visitBtn.classList.add("visited");
+            visitBtn.textContent = "訪問済み✔️";
+            visitBtn.disabled = true;
+          } else {
+            visitBtn.classList.remove("visited");
+            visitBtn.textContent = "訪問した！";
+            visitBtn.disabled = false;
+          }
+        });
+      }
+
+      function clearMarkers() {
+        markers.forEach(marker => marker.remove());
+        markers = [];
+      }
+
+      function getBuzzColor(buzz) {
+        const num = Number(buzz);
+        if (isNaN(num) || num <= 0) return "#BDBDBD"; 
+
+        switch (true) {
+          case num >= 5:
+            return "#FF0000"; 
+          case num >= 4:
+            return "#FF4540"; 
+          case num >= 3:
+            return "#FF6347"; 
+          case num >= 2:
+            return "#FF7F50"; 
+          case num >= 1:
+            return "#FFA07A"; 
+          default:
+            return "#BDBDBD"; 
+        }   
+      }
+
+      function addMarkers(data, autoPopupPost = null) {
+        clearMarkers();
+        data.forEach((post) => {
+            const color = getBuzzColor(post.buzz || 0);
+            const marker = new maplibregl.Marker({ color })
+            .setLngLat([post.lng, post.lat])
+            .setPopup(createPopup(post))
+            .addTo(map);
+
+          markers.push(marker);
+
+          if (autoPopupPost && post.postId === autoPopupPost.postId) {
+            marker.togglePopup();
+          }
+        });
+
+        updateVisitedList(data);
+      }
+
+      async function fetchPosts() {
+        try {
+          const response = await fetch("https://kbp6r7wm26.execute-api.us-east-1.amazonaws.com/test/DynamoDBManager");
+          console.log(response.status, response.statusText);
+          if (!response.ok) {
+            console.error("HTTPエラー:", response.status);
+            return [];
+          }
+          const resJson = await response.json();            // {statusCode, headers, body}
+          if (!resJson.body) return [];
+          const posts = JSON.parse(resJson.body);       // body 内の文字列を配列に変換
+          return posts;                                 // ここで配列を返す
+        } catch (err) {
+          console.error("API取得エラー:", err);
+          return [];
+        }
+      }
+
+
+      async function initializeMap() {
+        const posts = await fetchPosts();
+        map = await createMap({
+          container: "map",
+          center: [139.65, 35.55],
+          zoom: 13,
+        });
+
+        map.addControl(new maplibregl.NavigationControl(), "top-left");
+
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const longitude = pos.coords.longitude;
+                const latitude = pos.coords.latitude;
+
+                userLocation = { longitude, latitude };
+                new maplibregl.Marker({ color: "#87CEFA" })
+                .setLngLat([longitude, latitude])
+                .setPopup(new maplibregl.Popup().setText("現在地"))
+                .addTo(map);
+
+
+                let nearest = null;
+                let minDist = Infinity;
+
+                for (const p of posts) {
+                  const dx = longitude - p.lng;
+                  const dy = latitude - p.lat;
+                  const dist = Math.sqrt(dx * dx + dy * dy);
+                  if (dist < minDist) {
+                    minDist = dist;
+                    nearest = p;
+                  }
+                }
+                addMarkers(posts, nearest);
+
+                if (nearest) {
+                map.flyTo({ center: [nearest.lng, nearest.lat], zoom: 15 });
+
+                const bounds = new maplibregl.LngLatBounds();
+                bounds.extend([longitude, latitude]); 
+                bounds.extend([nearest.lng, nearest.lat]);
+                map.fitBounds(bounds, { padding: 80 });
+              }
+            },
+            (err) => console.warn("位置情報取得失敗:", err)
+          );
+        } else {
+          addMarkers(posts);
+        }
+
+        updateVisitedList(posts);
+
+        const searchBox = document.getElementById("search-box");
+        const searchButton = document.getElementById("search-button");
+        const resetButton = document.getElementById("reset-button");
+
+        function runSearch() {
+          const keyword = searchBox.value.trim().toLowerCase();
+          if (!keyword) return;
+
+          const filtered = posts.filter(
+            (p) =>
+              p.title.toLowerCase().includes(keyword) ||
+              p.placeName.toLowerCase().includes(keyword) ||
+              p.address.toLowerCase().includes(keyword) 
+          );
+
+          if (filtered.length === 0) {
+            alert("該当する場所が見つかりませんでした。");
+            return;
+          }
+
+          if (filtered.length === 1) {
+            const p = filtered[0];
+            map.flyTo({ center: [p.lng, p.lat], zoom: 15 });
+            addMarkers(filtered, p);
+          } else {
+            const bounds = new maplibregl.LngLatBounds();
+            filtered.forEach((p) => bounds.extend([p.lng, p.lat]));
+            map.fitBounds(bounds, { padding: 60 });
+            addMarkers(filtered, filtered[0]);
+          }
+        }
+
+        function resetSearch() {
+          searchBox.value = "";
+          addMarkers(posts);
+        }
+
+        searchButton.addEventListener("click", runSearch);
+        resetButton.addEventListener("click", resetSearch);
+        searchBox.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") runSearch();
+        });
+      }
+
+      initializeMap();
+    </script>
+  </body>
+</html>
