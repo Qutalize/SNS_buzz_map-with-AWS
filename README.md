@@ -25,12 +25,8 @@ Restaurant data is retrieved from DynamoDB via API Gateway and Lambda.
 The user’s current location is obtained using browser-provided APIs, and the web application is hosted on Amazon S3.  
 The system supports features such as restaurant search, visit history tracking, and a user-friendly interface for better usability.
 
-
-
 ## Example UI
 <p align="center">
   <img src="map_sample1.jpg" width="400">
-</p>
-<p align="center">
   <img src="whole_map.jpg" width="400">
 </p>
