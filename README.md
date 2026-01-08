@@ -1,4 +1,4 @@
-# SNS_buzz_map-with-AWS
+# SNS_buzz_map with AWS
 My classmates and I developed an SNS-based restaurant discovery web application as part of an AWS assignment.
 This application displays restaurants that are both located near the user’s current location and trending (“buzzing”) on social networking services (SNS).  
 The overall system architecture is illustrated in the AWS architecture diagram.
